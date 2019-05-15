@@ -38,21 +38,30 @@ enum class TagColor {
     YELLOW
 }
 
-data class DeviceData(
-    var id: String = "",
-    var deviceType: DeviceType = DeviceType.HUB
-)
+enum class HubState {
+    SCANNED,
+    CONNECTED,
+    DISCONNECTED,
+    CONFIGURED
+}
+
+enum class CandibellError {
+    HUB_ERROR,
+    SENSOR_ERROR
+}
 
 data class HubData(
     var macAddress: String = "",
-    var rssi: Int = 0,
-    var timestamp: Long = 0
+    var macAddressLastFour: String = "",
+    var id: String = ""
 )
 
-data class TagData(
+data class SensorData(
     var macAddress: String = "",
+    var macAddressLastFour: String = "",
+    var rawBytes: String = "",
     var rssi: Int = 0,
-    var timestamp: Long = 0
+    var id: String = ""
 )
 
 data class FoundDevice(

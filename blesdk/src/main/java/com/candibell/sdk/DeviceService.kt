@@ -58,6 +58,11 @@ class DeviceService(val context: Context) {
         startCommand(BleServiceRequestType.DISCONNECT)
     }
 
+    fun reset() {
+        d("reset")
+        startCommand(BleServiceRequestType.RESET)
+    }
+
     fun sendMessage(
         isTargetTestServer: Boolean,
         wifiSSID: String,

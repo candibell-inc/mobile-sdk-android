@@ -10,7 +10,7 @@ import com.candibell.sdk.rxbus.SetupHubType
 import java.util.*
 
 class BleService : Service() {
-    
+
     private val mBleServiceThread = HandlerThread("bleServiceThread")
     @Volatile
     private var mBluetoothGatt: BluetoothGatt? = null
@@ -48,14 +48,14 @@ class BleService : Service() {
     }
 
     private fun bleOperationCloseGatt() {
-        d( "bleOperationCloseGatt")
+        d("bleOperationCloseGatt")
         mBleHandler.removeCallbacksAndMessages(null)
         mBluetoothGatt?.close()
         mBluetoothGatt = null
     }
 
     private fun bleOperationReset() {
-        d( "bleOperationReset")
+        d("bleOperationReset")
         mBleHandler.removeCallbacksAndMessages(null)
         mBleDeviceAddress = ""
         mWriteCharacterService = null
@@ -63,15 +63,15 @@ class BleService : Service() {
     }
 
     private fun bleOperationReadCharacteristicForEncryption() {
-        d( "bleOperationReadCharacteristicForEncryption")
+        d("bleOperationReadCharacteristicForEncryption")
         mNotifyCharacterService?.let {
-            d( "readCharacteristic")
+            d("readCharacteristic")
             mBluetoothGatt?.readCharacteristic(it)
         }
     }
 
     private fun writeCharacteristic(data: ByteArray): Boolean {
-        d( "writeCharacteristic: ${DeviceUtils.bytesToHex(data)}")
+        d("writeCharacteristic: ${DeviceUtils.bytesToHex(data)}")
         mWriteCharacterService?.let {
             it.value = data
             it.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
@@ -82,7 +82,7 @@ class BleService : Service() {
     }
 
     private fun bleOperationGetCharacteristicDescriptor() {
-        d( "bleOperationGetCharacteristicDescriptor")
+        d("bleOperationGetCharacteristicDescriptor")
 
         mBluetoothGatt?.let {
             val isSuccess = it.setCharacteristicNotification(mNotifyCharacterService, true)
@@ -93,13 +93,13 @@ class BleService : Service() {
                     it.writeDescriptor(descriptor)
                 }
             } else {
-                d( "mNotifyCharacterService setCharacteristicNotification fail")
+                d("mNotifyCharacterService setCharacteristicNotification fail")
             }
         }
     }
 
     private fun bleOperationGetCharacteristicService() {
-        d( "bleOperationGetCharacteristicService")
+        d("bleOperationGetCharacteristicService")
         mBluetoothGatt?.let {
             val gattService = it.getService(UUID.fromString(BaseConstant.BLE_UUID_SERVICE))
             if (gattService != null) {
@@ -110,23 +110,23 @@ class BleService : Service() {
                 if (mNotifyCharacterService != null) {
                     mBleHandler.sendEmptyMessage(BleOperation.GET_CHARACTERISTIC_DESCRIPTOR.ordinal)
                 } else {
-                    d( "bleOperationGetCharacteristicService fail")
+                    d("bleOperationGetCharacteristicService fail")
                 }
             } else {
-                d( "bleOperationGetCharacteristicService fail")
+                d("bleOperationGetCharacteristicService fail")
             }
         }
     }
 
     private fun bleOperationDisconnect() {
-        d( "bleOperationDisconnect")
+        d("bleOperationDisconnect")
         if (mBluetoothGatt != null) {
             mBluetoothGatt?.disconnect()
         }
     }
 
     private fun bleOperationConnect() {
-        d( "bleOperationConnect")
+        d("bleOperationConnect")
         if (mBleDeviceAddress.isNotBlank()) {
             val device = getBluetoothAdapter().getRemoteDevice(mBleDeviceAddress)
             mBluetoothGatt = device.connectGatt(applicationContext, false, mBleGattCallback)
@@ -134,13 +134,13 @@ class BleService : Service() {
     }
 
     private fun bleOperationDiscoverService() {
-        d( "bleOperationDiscoverService")
+        d("bleOperationDiscoverService")
         mBluetoothGatt?.let {
             if (!it.discoverServices()) {
-                d( "discoverServices fail")
+                d("discoverServices fail")
                 mBleHandler.sendEmptyMessageDelayed(BleOperation.DISCONNECT.ordinal, 0)
             } else {
-                d( "discoverServices success")
+                d("discoverServices success")
             }
         }
     }
@@ -151,7 +151,7 @@ class BleService : Service() {
     inner class TpdBleGattCallback : BluetoothGattCallback() {
 
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            d( "gatt?.device?.address ===" + gatt?.device?.address)
+            d("gatt?.device?.address ===" + gatt?.device?.address)
 
             mBluetoothGatt = gatt
             when (newState) {
@@ -162,16 +162,16 @@ class BleService : Service() {
                     onBleDisconnected(status)
                 }
                 else -> {
-                    d( "onConnectionStateChange other State, no need to handle")
+                    d("onConnectionStateChange other State, no need to handle")
                 }
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            d( "onServicesDiscovered:")
+            d("onServicesDiscovered:")
 
             fun handleSuccess() {
-                e( "Ble handle service discovery Success")
+                e("Ble handle service discovery Success")
                 mBleHandler.sendEmptyMessageDelayed(
                     BleOperation.GET_CHARACTERISTIC_SERVICE.ordinal,
                     100
@@ -179,7 +179,7 @@ class BleService : Service() {
             }
 
             fun handleDiscoverFail() {
-                e( "Ble handle service discovery Fail")
+                e("Ble handle service discovery Fail")
                 mBleHandler.sendEmptyMessage(BleOperation.DISCONNECT.ordinal)
             }
 
@@ -194,15 +194,15 @@ class BleService : Service() {
             descriptor: BluetoothGattDescriptor?,
             status: Int
         ) {
-            d( "onDescriptorWrite: ")
+            d("onDescriptorWrite: ")
             fun handleSuccess() {
-                d( "handleSuccess, now we can start sending package.")
-                RxBus.instance.postRxEvent(SetupHubType.SETUP_HUB_CONNECTED)
+                d("handleSuccess, now we can start sending package.")
+                RxBus.instance.postRxEvent(SetupHubType.SETUP_HUB_CONNECTED, gatt?.device?.address)
             }
             when (status) {
                 BluetoothGatt.GATT_SUCCESS -> handleSuccess()
                 else -> {
-                    d( "onDescriptorWrite: fail")
+                    d("onDescriptorWrite: fail")
                 }
             }
         }
@@ -211,26 +211,26 @@ class BleService : Service() {
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic?
         ) {
-            d( "onCharacteristicChanged: ")
+            d("onCharacteristicChanged: ")
 
 
             if (gatt?.device?.address == mBleDeviceAddress) {
                 characteristic?.let {
                     val data = it.value
                     val dataHexString = DeviceUtils.bytesToHex(data)
-                    d( "onCharacteristicChanged: $dataHexString")
-                    d( "responseHexString: $dataHexString")
+                    d("onCharacteristicChanged: $dataHexString")
+                    d("responseHexString: $dataHexString")
                     val response = DeviceMapper.getSetupHubResponse(data)
                     if (response.responseType == SetupHubResponseType.OK) {
-                        d( "isResponseSuccess Notify UI to continue")
-                        RxBus.instance.postRxEvent(SetupHubType.SETUP_HUB_SUCCESS)
+                        d("isResponseSuccess Notify UI to continue")
+                        RxBus.instance.postRxEvent(SetupHubType.SETUP_HUB_SUCCESS, mBleDeviceAddress)
                     } else {
-                        d( "isResponseSuccess fail")
+                        d("isResponseSuccess fail")
                         if (response.responseType == SetupHubResponseType.WIFI_ERROR && DeviceMapper.isWifiErrorDueToAuthFail(
                                 response.wifiErrorResponseType
                             ).not()
                         ) {
-                            d( "isResponseSuccess wifi logic error, need check retry")
+                            d("isResponseSuccess wifi logic error, need check retry")
                             if (mBleRetryTime > 0) {
                                 d(
                                     "isResponseSuccess wifi logic error, mBleRetryTime: $mBleRetryTime"
@@ -253,7 +253,7 @@ class BleService : Service() {
                     }
                 }
             } else {
-                d( "no need to handle if the characteristic is not from same address")
+                d("no need to handle if the characteristic is not from same address")
             }
         }
 
@@ -262,21 +262,21 @@ class BleService : Service() {
             characteristic: BluetoothGattCharacteristic?,
             status: Int
         ) {
-            d( "onCharacteristicWrite: ${DeviceUtils.bytesToHex(characteristic?.value)}")
+            d("onCharacteristicWrite: ${DeviceUtils.bytesToHex(characteristic?.value)}")
             mBleDataBuffer?.let {
                 mBleHandler.postDelayed({ startUserCommand(it) }, 300)
             }
         }
 
         override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
-            d( "onReadRemoteRssi:  rssi == $rssi")
+            d("onReadRemoteRssi:  rssi == $rssi")
         }
     }
 
     private fun onBleConnected(gatt: BluetoothGatt?, status: Int) {
-        d( "onBleConnected")
+        d("onBleConnected")
         fun handleSuccess() {
-            d( "handleSuccess")
+            d("handleSuccess")
             mBleRetryTime = 3
             mWriteCharacterService = null
             mNotifyCharacterService = null
@@ -285,14 +285,14 @@ class BleService : Service() {
         when (status) {
             BluetoothGatt.GATT_SUCCESS -> handleSuccess()
             else -> {
-                d( "onBleConnected: fail")
+                d("onBleConnected: fail")
             }
         }
 
     }
 
     private fun onBleDisconnected(status: Int) {
-        d( "onBleDisconnected: $status")
+        d("onBleDisconnected: $status")
 
         if (status == 133) {
             if (mBleRetryTime > 0) {
@@ -312,27 +312,27 @@ class BleService : Service() {
 
     //Service Life Cycle Logic
     init {
-        d( "init")
+        d("init")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        d( "onCreate")
+        d("onCreate")
         mBleServiceThread.start()
         mBleHandler = BleHandler(mBleServiceThread.looper)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        d( "onDestroy")
+        d("onDestroy")
         mBluetoothGatt?.close()
         mBluetoothGatt = null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        d( "onStartCommand")
+        d("onStartCommand")
         intent?.let {
             val requestType = it.getSerializableExtra(BleRequestDataType.BLE_REQUEST_TYPE.name)
             when (requestType) {
@@ -363,7 +363,7 @@ class BleService : Service() {
             }
         }
 
-        return Service.START_STICKY
+        return START_STICKY
     }
 
     //Ble Service Function
@@ -372,26 +372,26 @@ class BleService : Service() {
         //removeBond(bluetoothDevice)
         mIsF2CmdSent = false
         mBleDeviceAddress = address
-        d( "onStartCommand connect: $mBleDeviceAddress")
+        d("onStartCommand connect: $mBleDeviceAddress")
         mBleHandler.sendEmptyMessageDelayed(BleOperation.CONNECT.ordinal, 500)
     }
 
     private fun disconnect() {
-        d( "onStartCommand disconnect:")
+        d("onStartCommand disconnect:")
         mIsDisconnectFromClient = true
         mBluetoothGatt?.disconnect()
         mBleHandler.sendEmptyMessage(BleOperation.CLOSE_GATT.ordinal)
     }
 
     private fun reset() {
-        d( "onStartCommand reset:")
+        d("onStartCommand reset:")
         mBluetoothGatt?.disconnect()
         mBleHandler.sendEmptyMessage(BleOperation.CLOSE_GATT.ordinal)
         mBleHandler.sendEmptyMessage(BleOperation.RESET.ordinal)
     }
 
     private fun startUserCommand(data: ByteArray) {
-        d( "startUserCommand data: ${DeviceUtils.bytesToHex(data)}")
+        d("startUserCommand data: ${DeviceUtils.bytesToHex(data)}")
         mIsF2CmdSent = true
         if (data.size > 20) {
             val sendDataBytes = ByteArray(20)
